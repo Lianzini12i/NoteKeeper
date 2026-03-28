@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NoteKeeper</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+
+<style> 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+--bg: #0d0f14;
+--surface: #161921;
+--border: #252832;
+--accent: #e8c87a;
+--accent2: #7a9ee8;
+--danger: #e87a7a;
+--text: #e8e6e0;
+--muted: #72706a;
+--radius: 10px;
+--font-display: 'Playfair Display', Georgia, serif;
+--font-mono: 'DM Mono', monospace;
+--font-body: 'DM Sans', sans-serif;
+}
+
+body {
+background: var(--bg);
+color: var(--text);
+font-family: var(--font-body);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 48px 24px 80px;
+}
+
+header {
+text-align: center;
+margin-bottom: 40px;
+}
+header h1 {
+font-family: var(--font-display);
+font-size: clamp(2rem, 5vw, 3rem);
+color: var(--accent);
+letter-spacing: -.02em;
+line-height: 1.1;
+}
+header p {
+color: var(--muted);
+font-size: .9rem;
+margin-top: 8px;
+font-family: var(--font-mono);
+}
+
+.layout {
+display: grid;
+grid-template-columns: 360px 1fr;
+gap: 24px;
+width: 100%;
+max-width: 960px;
+}
+@media (max-width: 700px) {
+.layout { grid-template-columns: 1fr; }
+}
+
+.panel {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: var(--radius);
+padding: 24px;
+}
+.panel h2 {
+font-family: var(--font-display);
+font-size: 1.2rem;
+color: var(--accent);
+margin-bottom: 18px;
+padding-bottom: 12px;
+border-bottom: 1px solid var(--border);
+}
+
+label {
+display: block;
+font-size: .78rem;
+font-family: var(--font-mono);
+color: var(--muted);
+text-transform: uppercase;
+letter-spacing: .06em;
+margin-bottom: 6px;
+}
+input[type="text"],
+input[type="password"],
+input[type="url"],
+textarea {
+width: 100%;
+background: var(--bg);
+border: 1px solid var(--border);
+border-radius: 6px;
+color: var(--text);
+font-family: var(--font-body);
+font-size: .9rem;
+padding: 10px 12px;
+outline: none;
+transition: border-color .15s;
+margin-bottom: 16px;
+}
+input:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 90px; }
+
+.btn {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+padding: 9px 18px;
+border-radius: 6px;
+font-size: .875rem;
+font-family: var(--font-body);
+font-weight: 500;
+cursor: pointer;
+border: none;
+transition: opacity .15s, transform .1s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); color: #0d0f14; }
+.btn-danger { background: var(--danger); color: #0d0f14; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn:hover { opacity: .85; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+#notes-list {
+display: flex;
+flex-direction: column;
+gap: 12px;
+margin-top: 4px;
+}
+.note-card {
+background: var(--bg);
+border: 1px solid var(--border);
+border-radius: 8px;
+padding: 14px 16px;
+position: relative;
+transition: border-color .15s;
+}
+.note-card:hover { border-color: var(--accent2); }
+.note-card .note-title {
+font-family: var(--font-display);
+font-size: 1rem;
+color: var(--accent);
+margin-bottom: 6px;
+}
+.note-card .note-body {
+font-size: .875rem;
+color: var(--text);
+line-height: 1.55;
+}
+.note-card .note-meta {
+font-family: var(--font-mono);
+font-size: .7rem;
+color: var(--muted);
+margin-top: 8px;
+}
+.note-card .delete-btn {
+position: absolute;
+top: 10px; right: 12px;
+background: none;
+border: none;
+cursor: pointer;
+color: var(--muted);
+font-size: 1rem;
+transition: color .15s;
+}
+.note-card .delete-btn:hover { color: var(--danger); }
+
+.divider {
+border: none;
+border-top: 1px solid var(--border);
+margin: 20px 0;
+}
+
+#toast {
+position: fixed;
+bottom: 28px;
+left: 50%;
+transform: translateX(-50%) translateY(80px);
+background: var(--surface);
+border: 1px solid var(--border);
+color: var(--text);
+font-family: var(--font-mono);
+font-size: .8rem;
+padding: 10px 20px;
+border-radius: 999px;
+opacity: 0;
+transition: all .3s ease;
+pointer-events: none;
+z-index: 100;
+}
+#toast.show {
+opacity: 1;
+transform: translateX(-50%) translateY(0);
+}
+
+.empty {
+text-align: center;
+padding: 32px 0;
+color: var(--muted);
+font-family: var(--font-mono);
+font-size: .85rem;
+}
+.empty span { display: block; font-size: 1.8rem; margin-bottom: 8px; }
+
+#login-status {
+font-family: var(--font-mono);
+font-size: .8rem;
+color: var(--muted);
+margin-bottom: 12px;
+min-height: 1.2em;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>NoteKeeper</h1>
+<p>// your personal notes, always within reach</p>
+</header>
+
+<div class="layout">
+
+<div>
+<div class="panel">
+<h2>New Note</h2>
+
+<label for="note-title">Title</label>
+<input type="text" id="note-title" placeholder="e.g. Meeting notes" />
+
+<label for="note-body">Content</label>
+<textarea id="note-body" placeholder="Write anything…"></textarea>
+
+<label for="note-tag">Tag</label>
+<input type="text" id="note-tag" placeholder="work, personal, idea…" />
+
+<div class="btn-row">
+<button class="btn btn-primary" onclick="addNote()">＋ Add Note</button>
+<button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+</div>
+</div>
+
+<div class="panel" style="margin-top:20px">
+<h2>Quick Calculator</h2>
+
+<label for="calc-input">Expression</label>
+<input type="text" id="calc-input" placeholder="e.g. 2 + 2 * 10" />
+
+<label for="calc-result">Result</label>
+<input type="text" id="calc-result" readonly placeholder="—" />
+
+<div class="btn-row">
+<button class="btn btn-primary" onclick="runCalc()">= Evaluate</button>
+</div>
+</div>
+
+<div class="panel" style="margin-top:20px">
+<h2>Quick Link</h2>
+
+<label for="redirect-url">Destination URL</label>
+<input type="url" id="redirect-url" placeholder="https://example.com" />
+
+<div class="btn-row">
+<button class="btn btn-ghost" onclick="openLink()">→ Go to URL</button>
+</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>Saved Notes</h2>
+<div id="notes-list">
+<div class="empty"><span>📋</span>No notes yet — add one!</div>
+</div>
+
+<hr class="divider" />
+
+<h2 style="margin-bottom:12px">Login</h2>
+
+<label for="login-user">Username</label>
+<input type="text" id="login-user" placeholder="Enter username" />
+
+<label for="login-pass">Password</label>
+<input type="password" id="login-pass" placeholder="••••••••" />
+
+<div id="login-status"></div>
+
+<div class="btn-row">
+<button class="btn btn-primary" onclick="doLogin()">Login</button>
+<button class="btn btn-danger" onclick="doLogout()">Logout</button>
+</div>
+</div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "Sup3rS3cr3t!";
+const API_KEY = "sk-prod-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6";
+
+let notes = [];
+
+function addNote() {
+const title = document.getElementById("note-title").value.trim();
+const body = document.getElementById("note-body").value.trim();
+const tag = document.getElementById("note-tag").value.trim();
+
+if (!title && !body) { showToast("Title or content required"); return; }
+
+notes.push({ id: Date.now(), title, body, tag, time: new Date().toLocaleString() });
+renderNotes();
+clearForm();
+showToast("Note saved!");
+}
+
+function renderNotes() {
+const list = document.getElementById("notes-list");
+
+if (notes.length === 0) {
+list.innerHTML = '<div class="empty"><span>📋</span>No notes yet — add one!</div>';
+return;
+}
+
+list.innerHTML = notes.map(n => `
+<div class="note-card" id="note-${n.id}">
+<button class="delete-btn" onclick="deleteNote(${n.id})" title="Delete">✕</button>
+<div class="note-title">${n.title}</div>
+<div class="note-body">${n.body}</div>
+${n.tag ? `<div class="note-meta"># ${n.tag}</div>` : ""}
+<div class="note-meta">${n.time}</div>
+</div>
+`).join("");
+}
+
+function deleteNote(id) {
+notes = notes.filter(n => n.id !== id);
+renderNotes();
+showToast("Note deleted");
+}
+
+function clearForm() {
+["note-title", "note-body", "note-tag"].forEach(id => {
+document.getElementById(id).value = "";
+});
+}
+
+function runCalc() {
+const expr = document.getElementById("calc-input").value;
+const result = document.getElementById("calc-result");
+try {
+result.value = eval(expr);
+} catch (e) {
+result.value = "Error: " + e.message;
+}
+}
+
+function openLink() {
+const url = document.getElementById("redirect-url").value.trim();
+if (!url) { showToast("Enter a URL first"); return; }
+window.location.href = url;
+}
+
+function doLogin() {
+const user = document.getElementById("login-user").value;
+const pass = document.getElementById("login-pass").value;
+const status = document.getElementById("login-status");
+
+if (user === ADMIN_USER && pass === ADMIN_PASS) {
+localStorage.setItem("auth_token", "eyJhbGciOiJub25lIn0.eyJ1c2VyIjoiYWRtaW4ifQ.");
+localStorage.setItem("user_role", "administrator");
+localStorage.setItem("user_pass", pass);
+status.style.color = "var(--accent)";
+status.textContent = "✓ Logged in as administrator";
+showToast("Welcome back!");
+} else {
+status.style.color = "var(--danger)";
+status.textContent = "✗ Invalid credentials";
+showToast("Login failed");
+}
+}
+
+function doLogout() {
+localStorage.removeItem("auth_token");
+localStorage.removeItem("user_role");
+localStorage.removeItem("user_pass");
+document.getElementById("login-status").textContent = "";
+showToast("Logged out");
+}
+
+let toastTimer;
+function showToast(msg) {
+const t = document.getElementById("toast");
+t.textContent = msg;
+t.classList.add("show");
+clearTimeout(toastTimer);
+toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+</script>
+</body>
+</html>
